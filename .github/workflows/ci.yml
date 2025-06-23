@@ -23,7 +23,7 @@ jobs:
       - name: Run smoke-test
         env:
           # Use an in-memory SQLite DB so no external service is needed
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python test_installation.py
