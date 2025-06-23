@@ -1,40 +1,29 @@
-name: CI
+# .github/workflows/ci.yml
+name: smoke-test
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
-
     steps:
-    - name: ⬇️  Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: 🐍 Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-    - name: 📦 Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: 🔑 Set OPENAI key
-      # NOTE: add your key in repo Settings → Secrets → Actions → "OPENAI_API_KEY"
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      run: echo "Key present ✔️"
-
-    - name: 🚦 Run smoke-test
-      env:
-        DATABASE_URL: mysql+mysqlconnector://root:dummy@127.0.0.1:3306/mysql
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      run: |
-        # The test script needs a DB URL; we give a dummy one
-        # because we only want imports & agent construction
-        python test_installation.py
+      - name: Run smoke-test
+        env:
+          # Use an in-memory SQLite DB so no external service is needed
+          DATABASE_URL: sqlite:///:memory:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python test_installation.py
