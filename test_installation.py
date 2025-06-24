@@ -11,6 +11,7 @@ FIXED VERSION:
 - Uses modern "tool-calling" agent type instead of deprecated ZERO_SHOT_REACT_DESCRIPTION
 - Adds CI-specific database configuration
 - Enhanced error handling for parsing errors
+- Removed unsupported early_stopping_method parameter
 
 Exit code 0  → success
 Exit code 1  → failure
@@ -79,14 +80,14 @@ def main() -> int:
             print(f"🔧 Database view support: {not is_ci}")
 
         # ✅ FIXED: Use modern agent type with better error handling
+        # ✅ REMOVED: early_stopping_method parameter (not supported in this LangChain version)
         agent = create_sql_agent(
             llm=llm,
             db=db,
             agent_type="tool-calling",  # ✅ Modern agent type (was: AgentType.ZERO_SHOT_REACT_DESCRIPTION)
             handle_parsing_errors=True,   # ✅ This now works properly with modern agent type
             verbose=False,
-            max_iterations=5 if is_ci else 15,  # ✅ Shorter iterations in CI
-            early_stopping_method="generate"  # ✅ Better error recovery
+            max_iterations=5 if is_ci else 15  # ✅ Shorter iterations in CI
         )
 
         # ---------------------------------------------------------------------
@@ -135,3 +136,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
