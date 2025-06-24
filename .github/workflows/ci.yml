@@ -1,29 +1,105 @@
 # .github/workflows/ci.yml
+# 
+# FIXED VERSION: Addresses caching issues and adds debugging
+# while maintaining clean, simple structure
+#
+# Key improvements:
+# - Cache-busting to prevent "old code" issues
+# - CI environment detection
+# - Enhanced debugging information
+# - Force fresh installs
+
 name: smoke-test
 
 on: [push, pull_request]
 
+env:
+  # Prevent Python bytecode cache issues
+  PYTHONDONTWRITEBYTECODE: 1
+  PYTHONUNBUFFERED: 1
+
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Force clean checkout to avoid stale files
+          clean: true
+          # Get full history for better debugging
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Disable pip caching to ensure fresh installs
+          cache: ''
+
+      - name: Clear all caches
+        run: |
+          echo "🧹 Clearing Python caches..."
+          # Remove Python bytecode cache
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          find . -name "*.pyc" -delete 2>/dev/null || true
+          find . -name "*.pyo" -delete 2>/dev/null || true
+          
+          echo "🧹 Clearing pip cache..."
+          pip cache purge || true
+          
+          echo "📁 Current directory contents:"
+          ls -la
 
       - name: Install dependencies
         run: |
+          echo "📦 Upgrading pip..."
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          
+          echo "📦 Installing requirements with no cache..."
+          # Force reinstall to avoid cached packages
+          pip install --no-cache-dir --force-reinstall -r requirements.txt
+          
+          echo "📦 Installed LangChain packages:"
+          pip list | grep -E "(langchain|openai)" || echo "❌ LangChain packages not found"
+
+      - name: Verify code integrity
+        run: |
+          echo "🔍 === CODE VERIFICATION ==="
+          echo "📝 Current commit: $(git log -1 --oneline)"
+          echo "📝 Git status: $(git status --porcelain || echo 'Clean')"
+          echo "📝 test_installation.py timestamp: $(ls -la test_installation.py)"
+          echo "📝 Python version: $(python --version)"
+          echo "📝 Working directory: $(pwd)"
+          echo "🔍 === END VERIFICATION ==="
 
       - name: Run smoke-test
         env:
-          # Use an in-memory SQLite DB so no external service is needed
+          # Use in-memory SQLite DB so no external service is needed
           DATABASE_URL: "sqlite:///:memory:"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Enable CI detection in Python code
+          CI: true
+          ENVIRONMENT: ci
         run: |
+          echo "🚀 Running smoke test..."
+          echo "🔧 Environment: CI=true"
+          echo "🔧 Database: sqlite:///:memory:"
           python test_installation.py
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "🐛 === FAILURE DEBUG INFO ==="
+          echo "🐛 Python path: $(which python)"
+          echo "🐛 Working directory: $(pwd)"
+          echo "🐛 Environment variables:"
+          env | grep -E "(CI|DATABASE|PYTHON|OPENAI)" || true
+          echo "🐛 Recent commits:"
+          git log -3 --oneline || true
+          echo "🐛 File contents (test_installation.py first 20 lines):"
+          head -20 test_installation.py || echo "Could not read file"
+          echo "🐛 Installed packages:"
+          pip list | grep -E "(langchain|openai)" || echo "No LangChain packages found"
+          echo "🐛 === END DEBUG INFO ==="
