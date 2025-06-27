@@ -1,88 +1,594 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>SQL-Agent demo</title>
-  <style>
-    body       { font-family: system-ui, sans-serif; margin: 2rem 4rem; }
-    h1         { margin-top: 0; }
-    textarea   { width: 100%; height: 160px; font: 14px monospace; }
-    input[type=text] { width: 100%; padding: .4rem; }
-    pre {
-      background: #111; color: #6fef8e; padding: 1rem;
-      overflow-x: auto; white-space: pre-wrap; word-break: break-all;
-    }
-    .muted { color:#777; font-size:.9rem }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Agent API - Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #6c757d;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab:hover:not(.active) {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .result.loading {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .auth-note {
+            background: #e7f3ff;
+            border: 2px solid #b3d9ff;
+            color: #0056b3;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .auth-note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .workspace-files {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .workspace-files h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .file-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .file-meta {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .file-actions a {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .file-actions a:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .examples h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .examples ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .examples li {
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .examples li:hover {
+            background: #e9ecef;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 SQL Agent API</h1>
+            <p>Natural Language Database Interface with Code Generation</p>
+        </div>
 
-<h1>SQL-Agent demo</h1>
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('ask')">💬 Ask Questions</button>
+                <button class="tab" onclick="showTab('edit')">✏️ Edit Data</button>
+                <button class="tab" onclick="showTab('code')">💻 Generate Code</button>
+            </div>
 
-<form id="form">
+            <!-- ASK TAB -->
+            <div id="ask" class="tab-content active">
+                <div class="form-group">
+                    <label for="askQuestion">Ask a question about your database:</label>
+                    <textarea id="askQuestion" class="form-control" placeholder="How many users are in the database?"></textarea>
+                </div>
+                
+                <div class="examples">
+                    <h4>💡 Example questions:</h4>
+                    <ul>
+                        <li onclick="setExample('askQuestion', 'How many users are in the database?')">How many users are in the database?</li>
+                        <li onclick="setExample('askQuestion', 'What is the average salary by department?')">What is the average salary by department?</li>
+                        <li onclick="setExample('askQuestion', 'Show me the top 5 customers by revenue')">Show me the top 5 customers by revenue</li>
+                        <li onclick="setExample('askQuestion', 'Which products have low inventory?')">Which products have low inventory?</li>
+                    </ul>
+                </div>
+                
+                <button class="btn" onclick="submitRequest('ask')">🔍 Ask Question</button>
+                <div id="askResult" class="result" style="display: none;"></div>
+            </div>
 
-  <label><strong>Question / SQL instruction</strong></label><br>
-  <textarea id="question" required>
-How many tables are in the DB?
-  </textarea><br><br>
+            <!-- EDIT TAB -->
+            <div id="edit" class="tab-content">
+                <div class="auth-note">
+                    <strong>🔐 Authentication Required</strong>
+                    This endpoint requires authentication. Make sure you have the correct token configured.
+                </div>
+                
+                <div class="form-group">
+                    <label for="editQuestion">Database modification instruction:</label>
+                    <textarea id="editQuestion" class="form-control" placeholder="Insert a new user with name John and email john@example.com"></textarea>
+                </div>
+                
+                <div class="examples">
+                    <h4>💡 Example instructions:</h4>
+                    <ul>
+                        <li onclick="setExample('editQuestion', 'Insert a new user with name John and email john@example.com')">Insert a new user with name John and email john@example.com</li>
+                        <li onclick="setExample('editQuestion', 'Update the salary of employee with ID 123 to 75000')">Update the salary of employee with ID 123 to 75000</li>
+                        <li onclick="setExample('editQuestion', 'Delete all orders older than 2020')">Delete all orders older than 2020</li>
+                        <li onclick="setExample('editQuestion', 'Add a new product called Widget with price 29.99')">Add a new product called Widget with price 29.99</li>
+                    </ul>
+                </div>
+                
+                <button class="btn" onclick="submitRequest('edit')">💾 Execute Changes</button>
+                <div id="editResult" class="result" style="display: none;"></div>
+            </div>
 
-  <label>
-    <input type="radio" name="mode" value="/ask" checked>
-    <span>/ask (read-only)</span>
-  </label>
-  &nbsp;&nbsp;
-  <label>
-    <input type="radio" name="mode" value="/edit">
-    <span>/edit (write)</span>
-  </label><br><br>
+            <!-- CODE TAB -->
+            <div id="code" class="tab-content">
+                <div class="auth-note">
+                    <strong>🔐 Authentication Required</strong>
+                    This endpoint requires authentication and creates files in the workspace directory.
+                </div>
+                
+                <div class="form-group">
+                    <label for="codeQuestion">File creation instruction:</label>
+                    <textarea id="codeQuestion" class="form-control" placeholder="Please create workspace/hello.html with <h1>Hello World!</h1>"></textarea>
+                </div>
+                
+                <div class="examples">
+                    <h4>💡 Example instructions:</h4>
+                    <ul>
+                        <li onclick="setExample('codeQuestion', 'Please create workspace/hello.html with <h1>Hello World!</h1>')">Create a simple HTML page</li>
+                        <li onclick="setExample('codeQuestion', 'Make workspace/style.css with body { background: lightblue; }')">Create a CSS stylesheet</li>
+                        <li onclick="setExample('codeQuestion', 'Create workspace/app.js with console.log(\"Hello from JavaScript!\");')">Create a JavaScript file</li>
+                        <li onclick="setExample('codeQuestion', 'I need workspace/config.json with {\"debug\": true, \"port\": 8000}')">Create a JSON configuration</li>
+                    </ul>
+                </div>
+                
+                <button class="btn" onclick="submitRequest('code')">🚀 Generate File</button>
+                <div id="codeResult" class="result" style="display: none;"></div>
+                
+                <div class="workspace-files">
+                    <h3>📁 Workspace Files</h3>
+                    <button class="btn" onclick="loadWorkspaceFiles()" style="margin-bottom: 15px;">🔄 Refresh Files</button>
+                    <div id="fileList" class="file-list">
+                        <p style="color: #6c757d; font-style: italic;">Click "Refresh Files" to load workspace files</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <label class="muted">Write-token (only required for /edit)</label><br>
-  <input type="text" id="token" placeholder="paste WRITE_TOKEN from .env"><br><br>
+    <script>
+        // Configuration
+        const API_BASE = window.location.origin;
+        const AUTH_TOKEN = 'letmein'; // Default token - change if needed
 
-  <button id="sendBtn" type="submit">Send</button>
-</form>
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Load workspace files when code tab is opened
+            if (tabName === 'code') {
+                loadWorkspaceFiles();
+            }
+        }
 
-<h2>Response →</h2>
-<pre id="output">{ waiting }</pre>
+        // Set example text
+        function setExample(fieldId, text) {
+            document.getElementById(fieldId).value = text;
+        }
 
+        // Submit API request
+        async function submitRequest(endpoint) {
+            const questionField = document.getElementById(endpoint + 'Question');
+            const resultDiv = document.getElementById(endpoint + 'Result');
+            const button = event.target;
+            
+            const question = questionField.value.trim();
+            if (!question) {
+                showResult(resultDiv, 'Please enter a question or instruction.', 'error');
+                return;
+            }
 
-<!-- ────────────────────────────────────────────────────────────── -->
-<!-- Very small JS helper                                           -->
-<!-- ────────────────────────────────────────────────────────────── -->
-<script>
-const form   = document.getElementById('form');
-const output = document.getElementById('output');
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span>Processing...';
+            showResult(resultDiv, 'Processing your request...', 'loading');
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
 
-  // pick values
-  const question   = document.getElementById('question').value.trim();
-  const endpoint   = document.querySelector('input[name=mode]:checked').value;
-  const writeToken = document.getElementById('token').value.trim();
+                // Add auth token for edit and code endpoints
+                if (endpoint === 'edit' || endpoint === 'code') {
+                    headers['X-Token'] = AUTH_TOKEN;
+                }
 
-  if (!question) {
-    output.textContent = '⚠️  Please enter a question.';
-    return;
-  }
+                const response = await fetch(`${API_BASE}/${endpoint}`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ question: question })
+                });
 
-  try {
-    const res = await fetch(endpoint, {
-      method : 'POST',                          // ✅ must be POST
-      headers: {
-        'Content-Type': 'application/json',
-        ...(endpoint === '/edit' && writeToken && {'X-Token': writeToken})
-      },
-      body: JSON.stringify({ question })
-    });
+                const data = await response.json();
 
-    const text = await res.text();
-    output.textContent = `HTTP ${res.status}\n\n${text}`;
-  } catch (err) {
-    output.textContent = `Client error → ${err}`;
-  }
-});
-</script>
+                if (response.ok) {
+                    let resultText = '';
+                    if (endpoint === 'ask') {
+                        resultText = data.answer || 'No answer received';
+                    } else if (endpoint === 'edit') {
+                        resultText = data.result || 'Operation completed';
+                    } else if (endpoint === 'code') {
+                        resultText = data.result || 'File created';
+                        // Refresh file list after successful code generation
+                        setTimeout(loadWorkspaceFiles, 1000);
+                    }
+                    
+                    showResult(resultDiv, resultText, 'success');
+                } else {
+                    showResult(resultDiv, `Error: ${data.detail || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showResult(resultDiv, `Network error: ${error.message}`, 'error');
+            } finally {
+                // Reset button
+                button.disabled = false;
+                const buttonTexts = {
+                    'ask': '🔍 Ask Question',
+                    'edit': '💾 Execute Changes',
+                    'code': '🚀 Generate File'
+                };
+                button.innerHTML = buttonTexts[endpoint];
+            }
+        }
 
+        // Show result
+        function showResult(resultDiv, message, type) {
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+
+        // Load workspace files
+        async function loadWorkspaceFiles() {
+            const fileListDiv = document.getElementById('fileList');
+            
+            try {
+                const response = await fetch(`${API_BASE}/files`);
+                const data = await response.json();
+                
+                if (response.ok && data.files) {
+                    if (data.files.length === 0) {
+                        fileListDiv.innerHTML = '<p style="color: #6c757d; font-style: italic;">No files in workspace yet. Create some using the code generator!</p>';
+                        return;
+                    }
+                    
+                    fileListDiv.innerHTML = data.files.map(file => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-name">📄 ${file.filename}</div>
+                                <div class="file-meta">${formatFileSize(file.size)} • Modified: ${formatDate(file.modified)}</div>
+                            </div>
+                            <div class="file-actions">
+                                <a href="/workspace/${file.filename}" target="_blank">View</a>
+                                <a href="/preview/${file.filename}" target="_blank">Preview</a>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    fileListDiv.innerHTML = '<p style="color: #dc3545;">Error loading files</p>';
+                }
+            } catch (error) {
+                fileListDiv.innerHTML = `<p style="color: #dc3545;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function formatDate(timestamp) {
+            return new Date(timestamp * 1000).toLocaleString();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load workspace files on page load
+            loadWorkspaceFiles();
+        });
+    </script>
 </body>
 </html>
